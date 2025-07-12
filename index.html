@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作文神批閱AI輔助系統</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&family=Noto+Sans+TC:wght@400;500;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --panel-bg: #ffffff;
+            --text-color: #333;
+            --heading-color: #2c3e50;
+            --muted-color: #7f8c8d;
+            --primary-color: #3498db;
+            --primary-hover: #2980b9;
+            --secondary-color: #2ecc71;
+            --secondary-hover: #27ae60;
+            --border-color: #e3e8ee;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --skeleton-bg: #e0e0e0;
+            --suggestion-bg: #f8f9fa;
+            --font-ui: 'Poppins', 'Noto Sans TC', sans-serif;
+            --font-body: 'Lora', 'Noto Sans TC', serif;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #2c3e50;
+            --panel-bg: #34495e;
+            --text-color: #ecf0f1;
+            --heading-color: #ffffff;
+            --muted-color: #95a5a6;
+            --border-color: #4b6584;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            --skeleton-bg: #4a627a;
+            --suggestion-bg: #2c3e50;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        header { position: relative; text-align: center; padding: 10px 0 20px 0; }
+        header h1 { font-size: 1.8rem; color: var(--heading-color); display: inline-flex; align-items: center; gap: 12px; }
+
+        .theme-switcher {
+            position: absolute; top: 50%; right: 0; transform: translateY(-50%);
+            background: var(--panel-bg); border: 1px solid var(--border-color);
+            border-radius: 50px; padding: 5px; cursor: pointer; font-size: 1.2rem;
+            width: 40px; height: 40px; display: flex; justify-content: center; align-items: center;
+            transition: all 0.3s;
+        }
+        .theme-switcher:hover { transform: translateY(-50%) scale(1.1) rotate(15deg); }
+
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; min-height: 75vh; }
+        .panel { background: var(--panel-bg); border-radius: 16px; padding: 25px; box-shadow: var(--shadow); border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; display: flex; flex-direction: column; }
+        .panel-header { font-size: 1.5rem; font-weight: 600; color: var(--heading-color); margin-bottom: 20px; }
+
+        #user-input-essay {
+            flex-grow: 1; width: 100%; padding: 15px; border: 1px solid var(--border-color);
+            border-radius: 8px; font-size: 16px; font-family: var(--font-body);
+            background: var(--bg-color); color: var(--text-color); resize: none; transition: all 0.3s;
+        }
+        #user-input-essay:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; gap: 10px; flex-wrap: wrap; }
+        .action-buttons-group { display: flex; gap: 10px; }
+        #word-count { font-size: 0.9rem; color: var(--muted-color); }
+        .btn {
+            background: none; border: 1px solid var(--border-color); color: var(--muted-color);
+            cursor: pointer; font-size: 0.9rem; font-family: var(--font-ui);
+            padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .btn-primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 600; margin-top: 20px; border-radius: 8px; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-primary:disabled, .btn:disabled { background: var(--muted-color); color: #fff; cursor: not-allowed; transform: none; border-color: var(--muted-color);}
+        .btn-ocr { background-color: var(--secondary-color); color: #fff; border-color: var(--secondary-color); }
+        .btn-ocr:hover { background: var(--secondary-hover); }
+
+        .results-panel .content-area { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
+        .welcome-screen { text-align: center; margin-top: 20%; color: var(--muted-color); }
+        .welcome-screen i { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; }
+
+        .result-card { background: var(--suggestion-bg); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 20px; padding: 20px; animation: fadeIn 0.5s ease-out; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .card-header h3 { font-size: 1.2rem; color: var(--heading-color); }
+        .copy-btn { font-size: 0.8rem; padding: 5px 10px; }
+        .result-card pre { white-space: pre-wrap; word-wrap: break-word; font-family: var(--font-body); line-height: 1.8; background: var(--panel-bg); padding: 15px; border-radius: 8px; }
+        .suggestions-list { list-style: none; }
+        .suggestions-list li { padding: 15px; margin-bottom: 12px; border-radius: 8px; border-left: 4px solid var(--primary-color); }
+        .correction-line { font-weight: 600; font-family: var(--font-ui); }
+        .explanation-line { padding-top: 8px; margin-left: 15px; color: var(--muted-color); font-size: 0.9em; }
+        
+        .cefr-info { font-size: 0.85rem; color: var(--muted-color); margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 10px; }
+        .cefr-level-clickable { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); cursor: pointer; text-decoration: underline dotted; display: inline-block;}
+        .cefr-level-clickable:hover { color: var(--primary-hover); }
+        
+        #lang-correction-container { font-size: 0.9rem; color: var(--muted-color); flex-grow: 1; }
+        .lang-correction-btn { background: none; border: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; font-family: var(--font-ui); padding: 0; font-size: 0.9rem; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.3s; }
+        .modal-content { background: var(--panel-bg); padding: 30px; border-radius: 16px; max-width: 600px; width: 90%; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto; }
+        .modal-close { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; color: var(--muted-color); cursor: pointer; transition: transform 0.2s; }
+        .modal-close:hover { transform: scale(1.2); }
+        .modal-content h3 { color: var(--primary-color); margin-bottom: 15px; }
+        .modal-content p { margin-bottom: 10px; }
+
+        .skeleton { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .skeleton-line { height: 1em; background-color: var(--skeleton-bg); border-radius: 4px; margin-bottom: 10px; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        footer { text-align: center; padding: 25px 0 15px; font-size: 0.9rem; color: var(--muted-color); }
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .results-panel { min-height: 500px; }
+            header h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="container">
+        <header>
+            <h1><i class="fa-solid fa-feather-pointed"></i> 作文神批閱AI輔助系統</h1>
+            <button class="theme-switcher" id="theme-toggle" title="切換主題"><i class="fa-solid fa-sun"></i></button>
+        </header>
+
+        <main class="main-grid">
+            <section class="panel input-panel">
+                <h2 class="panel-header">您的作文</h2>
+                <textarea id="user-input-essay" placeholder="在這裡開始寫作，或從範例/圖片載入..."></textarea>
+                <div class="toolbar">
+                    <span id="word-count">0 字</span>
+                    <div class="action-buttons-group">
+                        <button class="btn" id="load-sample-btn"><i class="fa-solid fa-file-lines"></i> 載入範例</button>
+                        <button class="btn" id="clear-btn"><i class="fa-solid fa-eraser"></i> 清空</button>
+                    </div>
+                </div>
+                <div class="toolbar">
+                    <div id="lang-correction-container"></div>
+                    <button class="btn btn-ocr" id="ocr-button">
+                        <i class="fa-solid fa-camera"></i> 智慧圖片識別
+                    </button>
+                    <input type="file" id="image-upload" accept="image/*" hidden>
+                </div>
+                <button class="btn btn-primary" id="submit-button"><i class="fa-solid fa-rocket"></i> 開始批改</button>
+            </section>
+
+            <section class="panel results-panel">
+                <h2 class="panel-header">AI 批改報告</h2>
+                <div class="content-area" id="results-container"></div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>Copyright © Liyuchiutiger Gongminshen</p>
+    </footer>
+
+    <div class="modal-overlay" id="cefr-modal">
+        <div class="modal-content" id="cefr-modal-content"></div>
+    </div>
+
+    <script>
+        const ui = {
+            themeToggle: document.getElementById('theme-toggle'),
+            userInputEssay: document.getElementById('user-input-essay'),
+            resultsContainer: document.getElementById('results-container'),
+            submitButton: document.getElementById('submit-button'),
+            ocrButton: document.getElementById('ocr-button'),
+            imageUpload: document.getElementById('image-upload'),
+            wordCountEl: document.getElementById('word-count'),
+            loadSampleBtn: document.getElementById('load-sample-btn'),
+            clearBtn: document.getElementById('clear-btn'),
+            cefrModal: document.getElementById('cefr-modal'),
+            cefrModalContent: document.getElementById('cefr-modal-content'),
+            langCorrectionContainer: document.getElementById('lang-correction-container'),
+        };
+
+        const apiKey = 'AIzaSyCerlnUOTQ4-5K6VRpugpRI1URcOF6ai2w';
+        let lastDetectedLanguage = '';
+
+        const sampleEssays = [
+            { lang: 'eng', text: "Technology has change our life in many way. For example, we can communication with people all over the world use smart phones. Also, internet provide us a lot of informations. But some people think technology make us more lazy. I think we should use technology wise." },
+            { lang: 'chi_tra', text: "今天我去了那個很有名的興興市，那裏非常熱鬧，人山人海。我買了很多東西，包括水果和一些海鮮。雖然天氣很熱，但我覺的這是一次很好玩的經驗，下次我還會帶我的家人一起去。" }
+        ];
+
+        const cefrDescriptions = {
+            'A1': { title: "A1 - 基礎使用者 (Beginner)", desc: "能理解並使用熟悉的日常用語和非常基本的短語，可以進行自我介紹並能對他人進行提問和回答，例如居住地、認識的人及擁有的事物。在對方語速緩慢、用詞清晰的情況下，可以進行簡單的互動。" },
+            'A2': { title: "A2 - 基礎使用者 (Elementary)", desc: "能理解在最貼近自己的環境中（如個人和家庭基本資訊、購物、當地地理、就業）常用到的句子和表達。可以在簡單而例行的任務中，針對熟悉而例行的話題，進行簡單而直接的交流。" },
+            'B1': { title: "B1 - 獨立使用者 (Intermediate)", desc: "能理解在工作、學校、休閒等場合，遇到的熟悉事務中，傳達的清晰標準的主要觀點。在目標語言地區旅行時，能應對大部分可能發生的狀況。能針對熟悉或個人感興趣的主題，創作簡單而連貫的文章。" },
+            'B2': { title: "B2 - 獨立使用者 (Upper-Intermediate)", desc: "能理解在自己專業領域內，具體和抽象主題的複雜文章的主要思想，包括技術性討論。能與母語人士進行足夠流利和自然的互動，雙方都不會感到吃力。能就廣泛的主題創作清晰、詳細的文章。" },
+            'C1': { title: "C1 - 熟練使用者 (Advanced)", desc: "能流利、自然地表達自己，無需費力地尋找措辭。能為了社交、學術和專業目的，靈活、有效地使用語言。能創作出結構清晰、細節豐富的文章。" },
+            'C2': { title: "C2 - 熟練使用者 (Proficient)", desc: "能毫不費力地理解幾乎所有聽到或讀到的內容。能總結來自不同口頭或書面來源的資訊，並以連貫的方式重構論點和敘述。能非常流利、準確、自然地表達自己，並能區分更細微的語義差別。" }
+        };
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+            showWelcomeScreen();
+        });
+
+        ui.themeToggle.addEventListener('click', toggleTheme);
+        ui.userInputEssay.addEventListener('input', updateWordCount);
+        ui.ocrButton.addEventListener('click', () => ui.imageUpload.click());
+        ui.imageUpload.addEventListener('change', handleImageUpload);
+        ui.clearBtn.addEventListener('click', clearAll);
+        ui.loadSampleBtn.addEventListener('click', loadSample);
+        ui.submitButton.addEventListener('click', () => submitForCorrection());
+        ui.cefrModal.addEventListener('click', (e) => { if (e.target === ui.cefrModal) ui.cefrModal.style.display = 'none'; });
+        ui.resultsContainer.addEventListener('click', handleResultsClick);
+        ui.langCorrectionContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('lang-correction-btn')) {
+                const correctionLang = e.target.dataset.correctionLang;
+                submitForCorrection(correctionLang);
+            }
+        });
+
+        function toggleTheme() {
+            const newTheme = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) { ui.themeToggle.innerHTML = theme === 'light' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>'; }
+        function showWelcomeScreen() { ui.resultsContainer.innerHTML = `<div class="welcome-screen"><i class="fa-solid fa-robot"></i><h3>準備好提升您的寫作能力了嗎？</h3><p>在這裡輸入您的文章，AI 將為您提供詳細的批改與建議。</p></div>`; }
+        function showSkeletonLoader() { ui.resultsContainer.innerHTML = `<div class="skeleton"><div class="skeleton-line" style="width: 40%; height: 1.5em;"></div><div class="skeleton-line" style="width: 90%;"></div><div class="skeleton-line" style="width: 70%;"></div><br><div class="skeleton-line" style="width: 50%; height: 1.5em;"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line" style="width: 80%;"></div><br><div class="skeleton-line" style="width: 60%; height: 1.5em;"></div><div class="skeleton-line" style="width: 95%;"></div><div class="skeleton-line" style="width: 85%;"></div></div>`; }
+        
+        function updateWordCount() {
+            const text = ui.userInputEssay.value;
+            const words = text.trim().split(/\s+/).filter(Boolean);
+            const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+            const englishWords = words.length - chineseChars;
+            ui.wordCountEl.textContent = `${chineseChars + englishWords} 字`;
+        }
+
+        function clearAll() {
+            ui.userInputEssay.value = '';
+            showWelcomeScreen();
+            updateWordCount();
+            ui.langCorrectionContainer.innerHTML = '';
+        }
+
+        function loadSample() {
+            const sample = sampleEssays[Math.floor(Math.random() * sampleEssays.length)];
+            ui.userInputEssay.value = sample.text;
+            updateWordCount();
+        }
+
+        function detectLanguage(text) {
+            const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+            const englishChars = (text.match(/[a-zA-Z]/g) || []).length;
+            return chineseChars > englishChars * 0.1 ? 'chi_tra' : 'eng';
+        }
+
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            ui.langCorrectionContainer.textContent = '智慧雙語識別中...';
+            setButtonsState(true);
+            
+            try {
+                const [engResult, chiResult] = await Promise.all([Tesseract.recognize(file, 'eng'), Tesseract.recognize(file, 'chi_tra')]);
+                const engText = engResult.data.text;
+                const chiText = chiResult.data.text;
+                if (chiText.length > engText.length * 1.2) {
+                    ui.userInputEssay.value = chiText;
+                    ui.langCorrectionContainer.textContent = 'OCR識別為中文';
+                } else {
+                    ui.userInputEssay.value = engText;
+                    ui.langCorrectionContainer.textContent = 'OCR識別為英文';
+                }
+                updateWordCount();
+            } catch (error) {
+                console.error('OCR Error:', error);
+                ui.langCorrectionContainer.textContent = '識別失敗，請重試。';
+            } finally {
+                setButtonsState(false);
+                event.target.value = null;
+            }
+        }
+        
+        async function submitForCorrection(forceLanguage = null) {
+            const essayText = ui.userInputEssay.value.trim();
+            if (!essayText) { alert('請輸入或上傳您要批改的作文。'); return; }
+
+            const languageToUse = forceLanguage || detectLanguage(essayText);
+            lastDetectedLanguage = languageToUse;
+            let prompt = createPrompt(essayText, languageToUse);
+            
+            setButtonsState(true);
+            showSkeletonLoader();
+            ui.langCorrectionContainer.innerHTML = ''; // Clear previous correction info
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.5, maxOutputTokens: 3072 } })
+                });
+                if (!response.ok) throw new Error(`API 錯誤: ${(await response.json()).error.message}`);
+                const data = await response.json();
+                if (!data.candidates || data.candidates.length === 0) throw new Error("API 未返回有效內容，可能被安全過濾器阻擋。");
+                const botReply = data.candidates[0].content.parts[0].text;
+                displayCorrection(botReply);
+            } catch (error) {
+                console.error('API Call Error:', error);
+                ui.resultsContainer.innerHTML = `<div class="welcome-screen" style="color: #e74c3c;"><h3>批改失敗</h3><p>${error.message}</p></div>`;
+            } finally {
+                setButtonsState(false);
+            }
+        }
+
+        function createPrompt(text, lang) {
+            const commonStructure = `[SUMMARY]
+總結文章優點與主要改進方向。
+[/SUMMARY]
+[CEFR_LEVEL]
+評估文章的CEFR等級(如A2,B1,B2)，並用 "||" 分隔等級和評級理由。
+[/CEFR_LEVEL]
+[CORRECTED_TEXT]
+提供完整的修正後文章。
+[/CORRECTED_TEXT]
+[SUGGESTIONS]
+- [問題類型]: "原文" -> "修改建議" || 在此說明原因。
+(為每個問題建立項目，並用 "||" 分隔建議和說明)
+[/SUGGESTIONS]`;
+            if (lang === 'eng') {
+                return `You are an expert English teacher correcting an essay for a non-native speaker. The essay:\n---\n${text}\n---\nProvide a response in the following structured format. Your analysis must be in Traditional Chinese, but the [CORRECTED_TEXT] must be in English.\n${commonStructure}`;
+            } else {
+                return `你是專業的中文老師，批改學生的作文。作文如下:\n---\n${text}\n---\n請完全使用繁體中文，並依照以下指定格式提供回覆。\n${commonStructure}`;
+            }
+        }
+        
+        function parseResponse(response) {
+            const getSection = (tag) => (response.match(new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`)) || [])[1]?.trim() || '';
+            return {
+                summary: getSection('SUMMARY'),
+                cefr: getSection('CEFR_LEVEL'),
+                correctedText: getSection('CORRECTED_TEXT'),
+                suggestions: getSection('SUGGESTIONS')
+            };
+        }
+        
+        function displayCorrection(responseText) {
+            const { summary, cefr, correctedText, suggestions } = parseResponse(responseText);
+            const cefrParts = cefr.split('||');
+            const cefrLevel = cefrParts[0]?.trim();
+            const cefrExplanation = cefrParts[1]?.trim();
+            const suggestionsHTML = suggestions.split(/-\s*\[/).filter(item => item.trim() !== '').map(item => {
+                const fullItem = `[${item.trim()}`; 
+                const parts = fullItem.split('||');
+                let explanationHTML = (parts[1] || '').trim() ? `<div class="explanation-line">${parts[1].trim().replace(/\n/g, '<br>')}</div>` : '';
+                return `<li><div class="correction-line">${(parts[0] || '').trim().replace(/\n/g, '<br>')}</div>${explanationHTML}</li>`;
+            }).join('');
+
+            const oppositeLang = lastDetectedLanguage === 'eng' ? 'chi_tra' : 'eng';
+            const langText = lastDetectedLanguage === 'eng' ? '英文' : '中文';
+            ui.langCorrectionContainer.innerHTML = `偵測語言：${langText}。 <button class="lang-correction-btn" data-correction-lang="${oppositeLang}">語言錯誤？點此更正</button>`;
+            
+            const cefrInfoHTML = `<div class="cefr-info"><i class="fa-solid fa-circle-info"></i> CEFR 是歐洲共同語言參考標準，用以評估語言能力。點擊上方等級可查看詳細說明。</div>`;
+            const cefrCardContent = cefrLevel ? `<div class="cefr-level-clickable" data-level="${cefrLevel}">${cefrLevel}</div><p style="margin-top:10px;">${cefrExplanation || ''}</p>${cefrInfoHTML}` : `未能評級。${cefrInfoHTML}`;
+
+            ui.resultsContainer.innerHTML = `${createCardHTML('總體評價', summary)} ${createCardHTML('水平評估', cefrCardContent)} ${createCardHTML('批改後文章', `<pre>${correctedText}</pre>`, correctedText)} ${createCardHTML('詳細建議', `<ul class="suggestions-list">${suggestionsHTML}</ul>`)}`;
+        }
+
+        function createCardHTML(title, content, copyText = null) {
+            const textToCopy = copyText || content.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+            return `<div class="result-card"><div class="card-header"><h3>${title}</h3><button class="btn copy-btn" data-copy="${encodeURIComponent(textToCopy)}"><i class="fa-solid fa-copy"></i> 複製</button></div>${content}</div>`;
+        }
+        
+        function handleResultsClick(e) {
+            const copyButton = e.target.closest('.copy-btn');
+            if (copyButton) { copyToClipboard(copyButton.dataset.copy, copyButton); return; }
+
+            const cefrClickable = e.target.closest('.cefr-level-clickable');
+            if (cefrClickable) {
+                const level = cefrClickable.dataset.level.toUpperCase();
+                const data = cefrDescriptions[level];
+                if (data) {
+                    ui.cefrModalContent.innerHTML = `<span class="modal-close" id="cefr-modal-close-inner">&times;</span><h3>${data.title}</h3><p>${data.desc}</p>`;
+                    ui.cefrModal.style.display = 'flex';
+                    document.getElementById('cefr-modal-close-inner').addEventListener('click', () => ui.cefrModal.style.display = 'none');
+                }
+            }
+        }
+
+        function copyToClipboard(encodedText, buttonElement) {
+            navigator.clipboard.writeText(decodeURIComponent(encodedText)).then(() => {
+                const originalHTML = buttonElement.innerHTML;
+                buttonElement.innerHTML = `<i class="fa-solid fa-check"></i> 已複製`;
+                setTimeout(() => { buttonElement.innerHTML = originalHTML; }, 2000);
+            }).catch(err => console.error('無法複製文字: ', err));
+        }
+
+        function setButtonsState(disabled) {
+            ui.submitButton.disabled = disabled;
+            ui.ocrButton.disabled = disabled;
+            ui.loadSampleBtn.disabled = disabled;
+            ui.clearBtn.disabled = disabled;
+        }
+    </script>
+</body>
+</html>
