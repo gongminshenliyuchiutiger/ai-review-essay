@@ -79,18 +79,19 @@
         .toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; gap: 10px; flex-wrap: wrap; }
         .action-buttons-group { display: flex; gap: 10px; }
         #word-count { font-size: 0.9rem; color: var(--muted-color); }
-        .btn {
-            background: none; border: 1px solid var(--border-color); color: var(--muted-color);
-            cursor: pointer; font-size: 0.9rem; font-family: var(--font-ui);
-            padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px;
-            transition: all 0.3s;
-        }
+        .btn { background: none; border: 1px solid var(--border-color); color: var(--muted-color); cursor: pointer; font-size: 0.9rem; font-family: var(--font-ui); padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; transition: all 0.3s; }
         .btn:hover { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
-        .btn-primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 600; margin-top: 20px; border-radius: 8px; }
+        .btn-primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 600; margin-top: 15px; border-radius: 8px; }
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-primary:disabled, .btn:disabled { background: var(--muted-color); color: #fff; cursor: not-allowed; transform: none; border-color: var(--muted-color);}
         .btn-ocr { background-color: var(--secondary-color); color: #fff; border-color: var(--secondary-color); }
         .btn-ocr:hover { background: var(--secondary-hover); }
+
+        .api-key-section { margin-top: 20px; }
+        .api-key-section label { font-size: 0.95rem; font-weight: 500; color: var(--heading-color); }
+        .api-tutorial-link { color: var(--primary-color); cursor: pointer; text-decoration: underline dotted; font-size: 0.9rem; margin-left: 5px; }
+        #user-api-key { width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-color); }
+        .api-key-note { font-size: 0.8rem; color: var(--muted-color); margin-top: 8px; }
 
         .results-panel .content-area { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
         .welcome-screen { text-align: center; margin-top: 20%; color: var(--muted-color); }
@@ -110,7 +111,7 @@
         .cefr-level-clickable { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); cursor: pointer; text-decoration: underline dotted; display: inline-block;}
         .cefr-level-clickable:hover { color: var(--primary-hover); }
         
-        #lang-correction-container { font-size: 0.9rem; color: var(--muted-color); flex-grow: 1; }
+        #lang-correction-container { font-size: 0.9rem; color: var(--muted-color); flex-grow: 1; text-align: left; }
         .lang-correction-btn { background: none; border: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; font-family: var(--font-ui); padding: 0; font-size: 0.9rem; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.3s; }
@@ -118,7 +119,11 @@
         .modal-close { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; color: var(--muted-color); cursor: pointer; transition: transform 0.2s; }
         .modal-close:hover { transform: scale(1.2); }
         .modal-content h3 { color: var(--primary-color); margin-bottom: 15px; }
-        .modal-content p { margin-bottom: 10px; }
+        .modal-content p, .modal-content li { margin-bottom: 10px; }
+        .modal-content ol { padding-left: 20px; }
+        .modal-content code { background-color: var(--bg-color); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .modal-content a { color: var(--primary-color); text-decoration: none; }
+        .modal-content a:hover { text-decoration: underline; }
 
         .skeleton { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         .skeleton-line { height: 1em; background-color: var(--skeleton-bg); border-radius: 4px; margin-bottom: 10px; }
@@ -153,11 +158,16 @@
                 </div>
                 <div class="toolbar">
                     <div id="lang-correction-container"></div>
-                    <button class="btn btn-ocr" id="ocr-button">
-                        <i class="fa-solid fa-camera"></i> 智慧圖片識別
-                    </button>
+                    <button class="btn btn-ocr" id="ocr-button"><i class="fa-solid fa-camera"></i> 智慧圖片識別</button>
                     <input type="file" id="image-upload" accept="image/*" hidden>
                 </div>
+                
+                <div class="api-key-section">
+                    <label for="user-api-key">您的 Google Gemini API 金鑰 (選填) <span class="api-tutorial-link" id="api-tutorial-link">(如何取得？)</span></label>
+                    <input type="password" id="user-api-key" placeholder="在此貼上您的金鑰以獲得更佳穩定性">
+                    <p class="api-key-note">AI 分析會優先使用您在此輸入的 API 金鑰。若留空，將使用系統內建的備用金鑰。</p>
+                </div>
+
                 <button class="btn btn-primary" id="submit-button"><i class="fa-solid fa-rocket"></i> 開始批改</button>
             </section>
 
@@ -175,6 +185,9 @@
     <div class="modal-overlay" id="cefr-modal">
         <div class="modal-content" id="cefr-modal-content"></div>
     </div>
+    <div class="modal-overlay" id="api-key-modal">
+        <div class="modal-content" id="api-key-modal-content"></div>
+    </div>
 
     <script>
         const ui = {
@@ -190,9 +203,13 @@
             cefrModal: document.getElementById('cefr-modal'),
             cefrModalContent: document.getElementById('cefr-modal-content'),
             langCorrectionContainer: document.getElementById('lang-correction-container'),
+            userApiKeyInput: document.getElementById('user-api-key'),
+            apiKeyModal: document.getElementById('api-key-modal'),
+            apiKeyModalContent: document.getElementById('api-key-modal-content'),
+            openApiKeyModalLink: document.getElementById('api-tutorial-link'),
         };
-
-        const apiKey = 'AIzaSyCerlnUOTQ4-5K6VRpugpRI1URcOF6ai2w';
+        
+        const BACKUP_API_KEY = 'AIzaSyCerlnUOTQ4-5K6VRpugpRI1URcOF6ai2w';
         let lastDetectedLanguage = '';
 
         const sampleEssays = [
@@ -224,12 +241,15 @@
         ui.clearBtn.addEventListener('click', clearAll);
         ui.loadSampleBtn.addEventListener('click', loadSample);
         ui.submitButton.addEventListener('click', () => submitForCorrection());
+        
+        // Modal Handlers
         ui.cefrModal.addEventListener('click', (e) => { if (e.target === ui.cefrModal) ui.cefrModal.style.display = 'none'; });
+        ui.apiKeyModal.addEventListener('click', (e) => { if (e.target === ui.apiKeyModal) ui.apiKeyModal.style.display = 'none'; });
+        ui.openApiKeyModalLink.addEventListener('click', openApiKeyTutorial);
         ui.resultsContainer.addEventListener('click', handleResultsClick);
         ui.langCorrectionContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('lang-correction-btn')) {
-                const correctionLang = e.target.dataset.correctionLang;
-                submitForCorrection(correctionLang);
+                submitForCorrection(e.target.dataset.correctionLang);
             }
         });
 
@@ -257,6 +277,7 @@
             showWelcomeScreen();
             updateWordCount();
             ui.langCorrectionContainer.innerHTML = '';
+            ui.userApiKeyInput.value = '';
         }
 
         function loadSample() {
@@ -303,16 +324,19 @@
             const essayText = ui.userInputEssay.value.trim();
             if (!essayText) { alert('請輸入或上傳您要批改的作文。'); return; }
 
+            const userKey = ui.userApiKeyInput.value.trim();
+            const apiKeyToUse = userKey || BACKUP_API_KEY;
+
             const languageToUse = forceLanguage || detectLanguage(essayText);
             lastDetectedLanguage = languageToUse;
             let prompt = createPrompt(essayText, languageToUse);
             
             setButtonsState(true);
             showSkeletonLoader();
-            ui.langCorrectionContainer.innerHTML = ''; // Clear previous correction info
+            ui.langCorrectionContainer.innerHTML = '';
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKeyToUse}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.5, maxOutputTokens: 3072 } })
@@ -402,6 +426,24 @@
                     document.getElementById('cefr-modal-close-inner').addEventListener('click', () => ui.cefrModal.style.display = 'none');
                 }
             }
+        }
+        
+        function openApiKeyTutorial() {
+            ui.apiKeyModalContent.innerHTML = `
+                <span class="modal-close" id="api-key-modal-close">&times;</span>
+                <h3>如何取得免費的 Google Gemini API 金鑰？</h3>
+                <p>按照以下簡單步驟，即可取得您自己的免費金鑰，享受更穩定、個人化的服務。</p>
+                <ol>
+                    <li>前往 <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio 的 API 金鑰頁面</a>。</li>
+                    <li>使用您的 Google 帳號登入。</li>
+                    <li>點擊頁面上的 <strong>「建立 API 金鑰」(Create API key)</strong> 按鈕。</li>
+                    <li>系統會立即產生一組新的金鑰。點擊金鑰旁邊的複製圖示。</li>
+                    <li>回到本頁面，將複製的金鑰貼到輸入框中即可！</li>
+                </ol>
+                <p><strong>提醒：</strong>請妥善保管您的 API 金鑰，不要與他人分享。</p>
+            `;
+            ui.apiKeyModal.style.display = 'flex';
+            document.getElementById('api-key-modal-close').addEventListener('click', () => ui.apiKeyModal.style.display = 'none');
         }
 
         function copyToClipboard(encodedText, buttonElement) {
