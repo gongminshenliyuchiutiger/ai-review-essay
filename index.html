@@ -80,19 +80,52 @@
         .action-buttons-group { display: flex; gap: 10px; }
         #word-count { font-size: 0.9rem; color: var(--muted-color); }
         .btn { background: none; border: 1px solid var(--border-color); color: var(--muted-color); cursor: pointer; font-size: 0.9rem; font-family: var(--font-ui); padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; transition: all 0.3s; }
-        .btn:hover { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .btn:hover:not(:disabled) { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
         .btn-primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 600; margin-top: 15px; border-radius: 8px; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-primary:disabled, .btn:disabled { background: var(--muted-color); color: #fff; cursor: not-allowed; transform: none; border-color: var(--muted-color);}
+        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+        .btn:disabled, .btn-primary:disabled { background: var(--muted-color); color: #fff; cursor: not-allowed; transform: none; border-color: var(--muted-color);}
         .btn-ocr { background-color: var(--secondary-color); color: #fff; border-color: var(--secondary-color); }
-        .btn-ocr:hover { background: var(--secondary-hover); }
+        .btn-ocr:hover:not(:disabled) { background: var(--secondary-hover); }
 
+        /* --- NEW/MODIFIED STYLES FOR API SECTION --- */
         .api-key-section { margin-top: 20px; }
-        .api-key-section label { font-size: 0.95rem; font-weight: 500; color: var(--heading-color); }
-        .api-tutorial-link { color: var(--primary-color); cursor: pointer; text-decoration: underline dotted; font-size: 0.9rem; margin-left: 5px; }
-        #user-api-key { width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-color); }
-        .api-key-note { font-size: 0.8rem; color: var(--muted-color); margin-top: 8px; }
-
+        .info-box {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        .info-box-info {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-color: var(--primary-color);
+            color: var(--text-color);
+        }
+        .info-box-warning {
+            background-color: rgba(241, 196, 15, 0.15);
+            border-color: #f1c40f;
+            color: var(--text-color);
+        }
+        .api-key-label-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .api-key-label-wrapper label {
+            font-size: 0.95rem; font-weight: 500; color: var(--heading-color); flex-grow: 1;
+        }
+        .api-tutorial-link { color: var(--primary-color); cursor: pointer; text-decoration: underline dotted; font-size: 0.9rem; }
+        .backup-key-enable-link {
+            color: var(--muted-color); text-decoration: none; font-size: 1.1rem;
+            transition: color 0.3s, transform 0.3s;
+        }
+        .backup-key-enable-link:hover { color: var(--primary-color); transform: rotate(45deg); }
+        #user-api-key { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-color); }
+        #user-api-key:disabled { background-color: var(--bg-color); opacity: 0.7; cursor: not-allowed; }
+        /* --- END OF NEW/MODIFIED STYLES --- */
+        
         .results-panel .content-area { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
         .welcome-screen { text-align: center; margin-top: 20%; color: var(--muted-color); }
         .welcome-screen i { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; }
@@ -162,10 +195,21 @@
                     <input type="file" id="image-upload" accept="image/*" hidden>
                 </div>
                 
+                <!-- MODIFIED API KEY SECTION -->
                 <div class="api-key-section">
-                    <label for="user-api-key">您的 Google Gemini API 金鑰 (選填) <span class="api-tutorial-link" id="api-tutorial-link">(如何取得？)</span></label>
-                    <input type="password" id="user-api-key" placeholder="在此貼上您的金鑰以獲得更佳穩定性">
-                    <p class="api-key-note">AI 分析會優先使用您在此輸入的 API 金鑰。若留空，將使用系統內建的備用金鑰。</p>
+                    <div id="aiApiInfoBox" class="info-box info-box-info">
+                       <p id="aiApiInfoText">為使用 AI 批改功能，請先前往 Google AI Studio 申請並貼上您的免費 API 金鑰。此金鑰將僅儲存在您的瀏覽器中，不會上傳至任何伺服器。</p>
+                    </div>
+                   <div>
+                       <div class="api-key-label-wrapper">
+                            <label for="user-api-key">您的 Google Gemini API 金鑰 (必填)</label>
+                            <span class="api-tutorial-link" id="api-tutorial-link">(如何取得？)</span>
+                            <a href="#" id="enableBackupKey" class="backup-key-enable-link" title="無法取得金鑰？點此啟用備用金鑰">
+                                <i class="fas fa-cog"></i>
+                            </a>
+                       </div>
+                       <input type="text" id="user-api-key" placeholder="請貼上您從 Google AI Studio 取得的 API 金鑰">
+                   </div>
                 </div>
 
                 <button class="btn btn-primary" id="submit-button"><i class="fa-solid fa-rocket"></i> 開始批改</button>
@@ -207,10 +251,15 @@
             apiKeyModal: document.getElementById('api-key-modal'),
             apiKeyModalContent: document.getElementById('api-key-modal-content'),
             openApiKeyModalLink: document.getElementById('api-tutorial-link'),
+            // New UI elements
+            aiApiInfoBox: document.getElementById('aiApiInfoBox'),
+            aiApiInfoText: document.getElementById('aiApiInfoText'),
+            enableBackupKey: document.getElementById('enableBackupKey'),
         };
         
         const BACKUP_API_KEY = 'AIzaSyCerlnUOTQ4-5K6VRpugpRI1URcOF6ai2w';
         let lastDetectedLanguage = '';
+        let isBackupKeyEnabled = false; // New state for backup key
 
         const sampleEssays = [
             { lang: 'eng', text: "Technology has change our life in many way. For example, we can communication with people all over the world use smart phones. Also, internet provide us a lot of informations. But some people think technology make us more lazy. I think we should use technology wise." },
@@ -252,6 +301,20 @@
                 submitForCorrection(e.target.dataset.correctionLang);
             }
         });
+        
+        // New event listener for enabling backup key
+        ui.enableBackupKey.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (confirm("這將啟用系統內建的備用金鑰進行 AI 批改。\n\n此金鑰為多人共用，尖峰時段可能不穩定或無法使用。\n強烈建議您使用自己的免費金鑰以獲得最佳體驗。\n\n確定要啟用備用金鑰嗎？")) {
+                isBackupKeyEnabled = true;
+                ui.userApiKeyInput.value = '已啟用系統備用金鑰';
+                ui.userApiKeyInput.disabled = true;
+                ui.aiApiInfoBox.className = 'info-box info-box-warning';
+                ui.aiApiInfoText.textContent = '已啟用系統備用金鑰。此金鑰為多人共用，可能不穩定。若要使用自己的金鑰，請重新整理頁面。';
+                ui.enableBackupKey.style.display = 'none';
+                alert('系統備用金鑰已啟用。');
+            }
+        });
 
         function toggleTheme() {
             const newTheme = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
@@ -277,7 +340,15 @@
             showWelcomeScreen();
             updateWordCount();
             ui.langCorrectionContainer.innerHTML = '';
+            
+            // Reset API key section to its initial state
+            isBackupKeyEnabled = false;
             ui.userApiKeyInput.value = '';
+            ui.userApiKeyInput.disabled = false;
+            ui.userApiKeyInput.placeholder = "請貼上您從 Google AI Studio 取得的 API 金鑰";
+            ui.aiApiInfoBox.className = 'info-box info-box-info';
+            ui.aiApiInfoText.textContent = '為使用 AI 批改功能，請先前往 Google AI Studio 申請並貼上您的免費 API 金鑰。此金鑰將僅儲存在您的瀏覽器中，不會上傳至任何伺服器。';
+            ui.enableBackupKey.style.display = 'block';
         }
 
         function loadSample() {
@@ -320,12 +391,25 @@
             }
         }
         
+        // New function to get the active API key
+        function getActiveApiKey() {
+            if (isBackupKeyEnabled) {
+                return BACKUP_API_KEY;
+            }
+            return ui.userApiKeyInput.value.trim();
+        }
+
         async function submitForCorrection(forceLanguage = null) {
             const essayText = ui.userInputEssay.value.trim();
             if (!essayText) { alert('請輸入或上傳您要批改的作文。'); return; }
 
-            const userKey = ui.userApiKeyInput.value.trim();
-            const apiKeyToUse = userKey || BACKUP_API_KEY;
+            // MODIFIED: Use the new getActiveApiKey function
+            const apiKeyToUse = getActiveApiKey();
+            if (!apiKeyToUse) {
+                alert('請在輸入框中提供您的 Google Gemini API 金鑰，或點擊右側齒輪圖示啟用備用金鑰，才能進行批改。');
+                ui.userApiKeyInput.focus();
+                return;
+            }
 
             const languageToUse = forceLanguage || detectLanguage(essayText);
             lastDetectedLanguage = languageToUse;
