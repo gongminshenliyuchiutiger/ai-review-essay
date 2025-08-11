@@ -102,11 +102,6 @@
             border-color: var(--primary-color);
             color: var(--text-color);
         }
-        .info-box-warning {
-            background-color: rgba(241, 196, 15, 0.15);
-            border-color: #f1c40f;
-            color: var(--text-color);
-        }
         .api-key-label-wrapper {
             display: flex;
             align-items: center;
@@ -117,11 +112,6 @@
             font-size: 0.95rem; font-weight: 500; color: var(--heading-color); flex-grow: 1;
         }
         .api-tutorial-link { color: var(--primary-color); cursor: pointer; text-decoration: underline dotted; font-size: 0.9rem; }
-        .backup-key-enable-link {
-            color: var(--muted-color); text-decoration: none; font-size: 1.1rem;
-            transition: color 0.3s, transform 0.3s;
-        }
-        .backup-key-enable-link:hover { color: var(--primary-color); transform: rotate(45deg); }
         #user-api-key { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-color); }
         #user-api-key:disabled { background-color: var(--bg-color); opacity: 0.7; cursor: not-allowed; }
         /* --- END OF NEW/MODIFIED STYLES --- */
@@ -197,18 +187,15 @@
                 
                 <!-- MODIFIED API KEY SECTION -->
                 <div class="api-key-section">
-                    <div id="aiApiInfoBox" class="info-box info-box-info">
-                       <p id="aiApiInfoText">為使用 AI 批改功能，請先前往 Google AI Studio 申請並貼上您的免費 API 金鑰。此金鑰將僅儲存在您的瀏覽器中，不會上傳至任何伺服器。</p>
+                    <div class="info-box info-box-info">
+                       <p>為使用 AI 批改功能，請先前往 Google AI Studio 申請並貼上您的免費 API 金鑰。此金鑰將僅儲存在您的瀏覽器中，不會上傳至任何伺服器。</p>
                     </div>
                    <div>
                        <div class="api-key-label-wrapper">
                             <label for="user-api-key">您的 Google Gemini API 金鑰 (必填)</label>
                             <span class="api-tutorial-link" id="api-tutorial-link">(如何取得？)</span>
-                            <a href="#" id="enableBackupKey" class="backup-key-enable-link" title="無法取得金鑰？點此啟用備用金鑰">
-                                <i class="fas fa-cog"></i>
-                            </a>
                        </div>
-                       <input type="text" id="user-api-key" placeholder="請貼上您從 Google AI Studio 取得的 API 金鑰">
+                       <input type="password" autocomplete="off" id="user-api-key" placeholder="請貼上您從 Google AI Studio 取得的 API 金鑰">
                    </div>
                 </div>
 
@@ -251,15 +238,9 @@
             apiKeyModal: document.getElementById('api-key-modal'),
             apiKeyModalContent: document.getElementById('api-key-modal-content'),
             openApiKeyModalLink: document.getElementById('api-tutorial-link'),
-            // New UI elements
-            aiApiInfoBox: document.getElementById('aiApiInfoBox'),
-            aiApiInfoText: document.getElementById('aiApiInfoText'),
-            enableBackupKey: document.getElementById('enableBackupKey'),
         };
         
-        const BACKUP_API_KEY = 'AIzaSyCerlnUOTQ4-5K6VRpugpRI1URcOF6ai2w';
         let lastDetectedLanguage = '';
-        let isBackupKeyEnabled = false; // New state for backup key
 
         const sampleEssays = [
             { lang: 'eng', text: "Technology has change our life in many way. For example, we can communication with people all over the world use smart phones. Also, internet provide us a lot of informations. But some people think technology make us more lazy. I think we should use technology wise." },
@@ -301,20 +282,6 @@
                 submitForCorrection(e.target.dataset.correctionLang);
             }
         });
-        
-        // New event listener for enabling backup key
-        ui.enableBackupKey.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (confirm("這將啟用系統內建的備用金鑰進行 AI 批改。\n\n此金鑰為多人共用，尖峰時段可能不穩定或無法使用。\n強烈建議您使用自己的免費金鑰以獲得最佳體驗。\n\n確定要啟用備用金鑰嗎？")) {
-                isBackupKeyEnabled = true;
-                ui.userApiKeyInput.value = '已啟用系統備用金鑰';
-                ui.userApiKeyInput.disabled = true;
-                ui.aiApiInfoBox.className = 'info-box info-box-warning';
-                ui.aiApiInfoText.textContent = '已啟用系統備用金鑰。此金鑰為多人共用，可能不穩定。若要使用自己的金鑰，請重新整理頁面。';
-                ui.enableBackupKey.style.display = 'none';
-                alert('系統備用金鑰已啟用。');
-            }
-        });
 
         function toggleTheme() {
             const newTheme = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
@@ -337,18 +304,10 @@
 
         function clearAll() {
             ui.userInputEssay.value = '';
+            ui.userApiKeyInput.value = '';
             showWelcomeScreen();
             updateWordCount();
             ui.langCorrectionContainer.innerHTML = '';
-            
-            // Reset API key section to its initial state
-            isBackupKeyEnabled = false;
-            ui.userApiKeyInput.value = '';
-            ui.userApiKeyInput.disabled = false;
-            ui.userApiKeyInput.placeholder = "請貼上您從 Google AI Studio 取得的 API 金鑰";
-            ui.aiApiInfoBox.className = 'info-box info-box-info';
-            ui.aiApiInfoText.textContent = '為使用 AI 批改功能，請先前往 Google AI Studio 申請並貼上您的免費 API 金鑰。此金鑰將僅儲存在您的瀏覽器中，不會上傳至任何伺服器。';
-            ui.enableBackupKey.style.display = 'block';
         }
 
         function loadSample() {
@@ -391,11 +350,7 @@
             }
         }
         
-        // New function to get the active API key
         function getActiveApiKey() {
-            if (isBackupKeyEnabled) {
-                return BACKUP_API_KEY;
-            }
             return ui.userApiKeyInput.value.trim();
         }
 
@@ -403,10 +358,9 @@
             const essayText = ui.userInputEssay.value.trim();
             if (!essayText) { alert('請輸入或上傳您要批改的作文。'); return; }
 
-            // MODIFIED: Use the new getActiveApiKey function
             const apiKeyToUse = getActiveApiKey();
             if (!apiKeyToUse) {
-                alert('請在輸入框中提供您的 Google Gemini API 金鑰，或點擊右側齒輪圖示啟用備用金鑰，才能進行批改。');
+                alert('請在輸入框中提供您的 Google Gemini API 金鑰，才能進行批改。');
                 ui.userApiKeyInput.focus();
                 return;
             }
